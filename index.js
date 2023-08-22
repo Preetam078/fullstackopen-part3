@@ -1,7 +1,15 @@
-import express from "express"
+import express, { json, response } from "express"
+import morgan from "morgan";
 const app = express();
+app.use(express.json())
+// Define a custom token to log request body
+morgan.token('req-body', (req, res) => JSON.stringify(req.body));
 
-const contacts  = [
+// Configure Morgan with custom format
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :req-body'));
+
+
+let contacts  = [
     { 
       "id": 1,
       "name": "Arto Hellas", 
@@ -29,6 +37,58 @@ app.get("/api/contacts", (request, response)=> {
         response.status(200).json(contacts)
     } catch (error) {
         response.status(404).send("Not Found")
+    }
+})
+
+app.get("/info", (req, res) => {
+    try {
+        const total = contacts.length;
+        const time = new Date()
+        res.send(`<h2>Phonebook has info of ${total} people</h2><br></br><h2>${time}</h2>`)
+
+    } catch (error) {
+        response.status(404).send(error)
+    }
+})
+
+app.get("/api/contacts/:id", (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const data = contacts.find(contact => contact.id === id);
+
+        if (!data) {
+            res.status(404).json({ error: "Contact not found" });
+        } else {
+            res.json(data);
+        }
+    } catch (error) {
+        res.status(500).json({ error: "An internal server error occurred" });
+    }
+});
+
+app.delete("/api/contacts/:id", (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        contacts = contacts.filter(contact => contact.id !== id);
+        res.status(204).json(contacts)
+    } catch (error) {
+        res.status(500).json({ error: "An internal server error occurred" });
+    }
+});
+
+app.post("/api/contacts", (req, res) => {
+    try {
+        let maxId = 0;
+        contacts.forEach(contact=> {
+            maxId = Math.max(maxId, contact.id)
+        })
+        let data = req.body;
+        const newContact = {id:maxId+1, ...data} 
+        contacts.push(newContact)
+        res.status(201).json(newContact)
+
+    } catch (error) {
+        res.status(500).json({ error: "An internal server error occurred" });
     }
 })
 
