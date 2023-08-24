@@ -1,13 +1,9 @@
 import express, { json, response } from "express"
 import morgan from "morgan";
+import cors from "cors";
 const app = express();
 app.use(express.json())
-// Define a custom token to log request body
-morgan.token('req-body', (req, res) => JSON.stringify(req.body));
-
-// Configure Morgan with custom format
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :req-body'));
-
+app.use(cors())
 
 let contacts  = [
     { 
