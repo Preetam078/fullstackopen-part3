@@ -1,11 +1,6 @@
-import express, { json, response } from "express"
-import morgan from "morgan";
-import cors from "cors";
-const app = express();
-app.use(express.json())
-app.use(cors())
+import express from "express";
 
-let contacts  = [
+let data = [
     { 
       "id": 1,
       "name": "Arto Hellas", 
@@ -26,69 +21,110 @@ let contacts  = [
       "name": "Mary Poppendieck", 
       "number": "39-23-6423122"
     }
-]
+];
 
-app.get("/api/contacts", (request, response)=> {
+const app = express();
+app.use(express.json())
+
+app.get("/api/persons", async(req, res) => {
     try {
-        response.status(200).json(contacts)
+        res.status(200).json({data});
     } catch (error) {
-        response.status(404).send("Not Found")
+        console.log(error);
     }
 })
 
-app.get("/info", (req, res) => {
+app.get("/info", async(req, res) => {
     try {
-        const total = contacts.length;
-        const time = new Date()
-        res.send(`<h2>Phonebook has info of ${total} people</h2><br></br><h2>${time}</h2>`)
-
+        const len = data.length;
+        const date = new Date();
+        res.status(201).send(`<p>Phonebook has info for ${len} people</p><br/> <p>${date}</p>`)
     } catch (error) {
-        response.status(404).send(error)
+        console.log(error);
     }
 })
 
-app.get("/api/contacts/:id", (req, res) => {
+app.get("/api/persons/:id", async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        const data = contacts.find(contact => contact.id === id);
+        const id = req.params.id;
+        // Assuming 'data' is an array of objects with an 'id' property
+        const curr = data.find((val) => val.id === parseInt(id));
 
-        if (!data) {
-            res.status(404).json({ error: "Contact not found" });
+        if (curr) {
+            res.status(200).json({ curr });
         } else {
-            res.json(data);
+            res.status(404).json({ error: "Person not found" });
         }
     } catch (error) {
-        res.status(500).json({ error: "An internal server error occurred" });
+        console.log(error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-app.delete("/api/contacts/:id", (req, res) => {
+app.delete("/api/persons/:id", async (req, res) => {
     try {
-        const id = Number(req.params.id);
-        contacts = contacts.filter(contact => contact.id !== id);
-        res.status(204).json(contacts)
+        const id = req.params.id;
+        const curr = data.find((val) => val.id === parseInt(id));
+
+        if (!curr) {
+            return res.status(404).json({ error: "Person not found" });
+        }
+
+        data = data.filter((val) => val.id !== parseInt(id));
+        res.status(200).json({ data });
     } catch (error) {
-        res.status(500).json({ error: "An internal server error occurred" });
+        console.log(error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-app.post("/api/contacts", (req, res) => {
+app.post("/api/persons", (req, res) => {
     try {
-        let maxId = 0;
-        contacts.forEach(contact=> {
-            maxId = Math.max(maxId, contact.id)
-        })
-        let data = req.body;
-        const newContact = {id:maxId+1, ...data} 
-        contacts.push(newContact)
-        res.status(201).json(newContact)
+        let len = data.length + 10;
+        let currId;
+
+        while (true) {
+            const id = Math.floor(Math.random() * len);
+            const curr = data.find((val) => val.id === id);
+
+            if (!curr) {
+                currId = id;
+                break;
+            }
+        }
+
+        const newData = req.body;
+
+        if (!newData.name || !newData.number) {
+            return res.status(400).json({ error: "Name or number is missing" });
+        }
+
+        const duplicateName = data.find(
+            (val) => val.name.toLowerCase() === newData.name.toLowerCase()
+        );
+
+        const duplicateNumber = data.find((val) => val.number === newData.number);
+
+        if (duplicateName || duplicateNumber) {
+            return res.status(400).json({ error: "Name or number already exists" });
+        }
+
+        const newPerson = {
+            id: currId,
+            ...newData
+        };
+
+        data.push(newPerson);
+        res.status(201).json(data);
 
     } catch (error) {
-        res.status(500).json({ error: "An internal server error occurred" });
+        console.log(error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
-})
+});
 
-const PORT = 3001;
-app.listen(PORT, ()=> {
-    console.log(`app is running on ${PORT}`)
+
+const PORT = 8001
+app.listen(PORT, () => {
+    console.log(`Port is running in ${PORT}`)
 })
